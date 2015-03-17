@@ -4,6 +4,7 @@ import nltk
 
 import util
 import recipe
+import kb
 
 
 def parse_html(html):
@@ -14,52 +15,95 @@ def parse_html(html):
     """
     soup = BeautifulSoup(html)
     title = soup.find('span', {'itemprop': 'name'}).get_text()
+    if soup.find('span', {'itemprop': 'name'}):
+        title = soup.find('span', {'itemprop': 'name'}).get_text()
+    elif soup.find('h1', {'itemprop': 'name'}):
+        title = soup.find('h1', {'itemprop': 'name'}).get_text()
     ingredients = soup.find_all('p', {'itemprop': 'ingredients'})
-    tupes = []
+    ingredient_quantity_string_tuples = []
     for i in ingredients:
-        a = i.find('span', {'class': 'ingredient-amount'}).get_text()
+        if i.find('span', {'class': 'ingredient-amount'}):
+            a = i.find('span', {'class': 'ingredient-amount'}).get_text()
+        else:
+            a = 'NO_UNIT'
         n = i.find('span', {'class': 'ingredient-name'}).get_text()
-        tupes.append((n, a))
+        ingredient_quantity_string_tuples.append((n, a))
 
     directions = soup.find_all('span', {'class': 'plaincharacterwrap break'})
     steps = []
     for d in directions:
         steps.append(d.get_text())
-    return title, tupes, steps
+    return title, ingredient_quantity_string_tuples, steps
 
 
-def parse_ingredient(tupes):
+def parse_ingredient(ingredient, knowledge_base):
     """
     Takes ingredient-name string from parse_html, separates ingredient into name, descriptor, preparation, and prep descriptor
-    :param tupes: the ingredient-name part of tupes
+    :param ingredients: list of string tuples ("ingredient-name", "ingredient-amount")
     :return: ingredient name, list of descriptors, list of preparations, list of prep descriptors
     """
     # TODO: consider words with 2 POS tags (remove from consideration after being added?)
     # TODO: use context clues?
-    # TODO: use only accepted ingredients names as the basis for name (rather than all nouns)
-    # TODO: Change from lists to a single string object
     # Look for commas, ands, other syntax patterns
 
-    ingredients = tupes
-
-    name = []
     descriptor = []
     preparation = []
     prep_description = []
+    rest = []
 
-    for i in ingredients:
-        tokens = nltk.word_tokenize(i[0])
-        pos_tagged_tokens = nltk.pos_tag(tokens)
-        for word, tag in pos_tagged_tokens:
-            if tag == 'NN':
-                name.append(word)
-            elif tag == 'ADJ':
-                descriptor.append(word)
-            elif tag == 'VBD':
-                preparation.append(word)
-            elif tag == 'ADV':
-                prep_description.append(word)
-    return name, descriptor, preparation, prep_description
+    ingredient = ingredient.replace(', or to taste', '')
+    name = ingredient.split(',')
+    name = [t.strip() for t in name]
+    if len(name) > 1:
+        True
+        # solve for commas
+        # if 'and' in name[-1:]
+
+    name = ' '.join(name).split()
+    for w in range(len(name)):
+        if w+1 == len(name):
+            util.warning('Could not find ingredient %s in KB' % name)
+            rest = name
+            name = 'unknown'
+        elif not knowledge_base.lookup_food(' '.join(name[w:])):
+            rest = name[:(w+1)]
+            continue
+        else:
+            rest = name[:w]
+            name = ' '.join(name[w:])
+            break
+    for word in rest:
+        if word[-2:] == 'ed':
+            preparation.append(word)
+        if word[-2:] == 'ly':
+            prep_description.append(word)
+        else:
+            descriptor.append(word)
+
+        # tokens = nltk.word_tokenize(word)
+        # pos_tagged_tokens = nltk.pos_tag(tokens)
+        # for tok, tag in pos_tagged_tokens:
+        #     if tag == 'ADJ':
+        #         descriptor.append(tok)
+        #     elif tag == 'VBD':
+        #         preparation.append(tok)
+        #     elif tag == 'ADV':
+        #         prep_description.append(tok)
+        #     else:
+        #         util.warning('Could not interpret word as descriptor, preparation, or preparation descriptor')
+    if not descriptor:
+        d = 'none'
+    else:
+        d = ' '.join(descriptor)
+    if not preparation:
+        p = 'none'
+    else:
+        p = ' '.join(preparation)
+    if not prep_description:
+        pd = 'none'
+    else:
+        pd = ' '.join(prep_description)
+    return name, d, p, pd
 
 
 def url_to_dictionary(url):
