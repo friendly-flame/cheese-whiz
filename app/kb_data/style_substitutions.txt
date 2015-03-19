@@ -75,7 +75,6 @@ generic_spice = chili sauce
 oregano
 basil
 garlic
-bay leaves
 rosemary
 red pepper flake
 sage
@@ -178,7 +177,6 @@ parsley
 oregano
 basil
 garlic
-bay leaves
 rosemary
 red pepper flake
 sage

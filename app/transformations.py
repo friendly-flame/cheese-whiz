@@ -90,7 +90,14 @@ def make_healthy(from_recipe, knowledge_base):
     :param from_recipe: old recipe
     :return: new recipe
     """
-
+    new_recipe = recipe.Recipe('Healthy ' + from_recipe.title, steps=from_recipe.steps)
+    for i in range(len(from_recipe.ingredients)):
+        if # healthy version in kb:
+            new_recipe.ingredients[i] = from_recipe.ingredients[i]
+            new_recipe.ingredients[i].name += ' low'
+            match_to_food(knowledge_base)
+        else:
+            new_recipe.ingredients[i] = from_recipe.ingredients[i]
     return from_recipe
 
 
@@ -121,7 +128,10 @@ def lookup_healthy_ingredient(from_ingredient, knowledge_base):
     :param from_ingredient:
     :return: Ingredient, or None
     """
+    n = from_ingredient.name
+    if knowledge_base.lookup_food('low fat '+n):
 
+    if knowledge_base
     return from_ingredient
 
 
